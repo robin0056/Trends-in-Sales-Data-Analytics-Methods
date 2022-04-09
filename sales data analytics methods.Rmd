@@ -1,0 +1,132 @@
+---
+title: "sales data analytics"
+author: "Robin Killewald"
+date: "4/2/2022"
+output: html_document
+---
+
+# Data was retrieved from scopus.com
+
+```{r initial setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(ggpubr)
+library(ggmap)
+library(ggplot2)
+library(ggthemr)
+library(ggridges)
+library(ggwaffle)
+library(gganimate)
+library(gghighlight)
+library(GGally)
+library(scales)
+library(devtools)
+library(treemapify)
+library(viridis)
+library(data.table)
+library(gridExtra)
+library(reshape2)
+library(gapminder)
+library(nycflights13)
+library(readr)
+library(waffle)
+library(reshape2)
+library(pracma)
+library(forecast)
+library(plotly)
+library(crosstalk)
+library(rgl)
+library(RColorBrewer)
+library(colorfindr)
+library(shiny)
+library(RCurl)
+library(writexl)
+```
+
+# Prepare setup
+```{r}
+setwd("~/Desktop/r")
+ggthemr('dust')
+date_of_data_extraction <- as.Date("2022-04-02")
+```
+
+# Import and combine data
+```{r}
+# read in csv files with data analytics in title, abs, key
+da <- read.csv("da.csv", skip = 8, col.names = c("year", "documents"))
+da_des <- read.csv("da_descriptive.csv", skip = 8, col.names = c("year", "documents"))
+da_pres <- read.csv("da_prescriptive.csv", skip = 8, col.names = c("year", "documents"))
+da_pred <- read.csv("da_predictive.csv", skip = 8, col.names = c("year", "documents"))
+
+# data cleaning and preprocessing
+all_da <- as.data.frame(list(da, da_des, da_pres, da_pred) %>% 
+                          reduce(full_join, by = 'year')) %>% 
+                          replace(is.na(.), 0)
+colnames(all_da) <- c("Year", "All Data Analytics Documents", "Descriptive Data Analytics Documents", "Prescriptive Data Analytics Documents", "Predictive Data Analytics Documents")
+
+# read in csv files with sales data analytics in title, abs, key
+sda <- read.csv("sda.csv", skip = 8, col.names = c("year", "documents"))
+sda_des <- read.csv("sda_descriptive.csv", skip = 8, col.names = c("year", "documents"))
+sda_pres <- read.csv("sda_prescriptive.csv", skip = 8, col.names = c("year", "documents"))
+sda_pred <- read.csv("sda_predictive.csv", skip = 8, col.names = c("year", "documents"))
+
+# data cleaning and preprocessing
+all_sda <- as.data.frame(list(sda, sda_des, sda_pres, sda_pred) %>% 
+                          reduce(full_join, by = 'year')) %>% 
+                          replace(is.na(.), 0)
+colnames(all_sda) <- c("Year", "All Sales Data Analytics Documents", "Descriptive Sales Data Analytics Documents", "Prescriptive Sales Data Analytics Documents", "Predictive Sales Data Analytics Documents")
+```
+
+# Merge all tables 
+```{r}
+# merge all data into one frame
+all_da_sda <- merge(all_da, all_sda, all = TRUE) %>%
+  replace(is.na(.), 0) %>%
+  map_df(rev)
+
+all_da_sda
+#export as .xlsx
+#write_xlsx(all_da_sda, "da_sda.xlsx")
+```
+
+# Plot data analytics  
+```{r}
+# plot da
+all_da %>%
+  filter(Year >= "2000-01-01") %>%
+  ggplot(aes(x=Year)) + 
+  geom_line(aes(y = `All Data Analytics Documents`), size = 1, colour = "#355C7D") + 
+  geom_line(aes(y = `Predictive Data Analytics Documents`), size = 1, colour = "#6C5B7B") +
+  geom_line(aes(y = `Descriptive Data Analytics Documents`), size = 1, colour = "#C06C84") + 
+  geom_line(aes(y = `Prescriptive Data Analytics Documents`), size = 1, colour = "#F67280") +
+  labs(y = "Number of Documents") +
+  xlim(2000, 2024) +
+  annotate("text", x=2022, y=14230, label= "All", family = "Times")+
+  annotate("text", x=2023, y=6000, label= "Predictive", family = "Times")+
+  annotate("text", x=2023.2, y=600, label= "Descriptive", family = "Times")+
+  annotate("text", x=2023.25, y=70, label= "Prescriptive", family = "Times")+
+  theme(text = element_text(family = "Times"))
+
+ggsave("da.pdf", width = 6, height = 4)
+```
+
+# Plot Sales data analytics
+```{r}
+# plot sda
+all_sda %>%
+  filter(Year >= "2000-01-01") %>%
+  ggplot(aes(x=Year)) + 
+  geom_line(aes(y = `All Sales Data Analytics Documents`), size = 1, colour = "#355C7D") + 
+  geom_line(aes(y = `Predictive Sales Data Analytics Documents`), size = 1, colour = "#6C5B7B") +
+  geom_line(aes(y = `Descriptive Sales Data Analytics Documents`), size = 1, colour = "#C06C84") + 
+  geom_line(aes(y = `Prescriptive Sales Data Analytics Documents`), size = 1, colour = "#F67280") +
+  xlim(2000, 2024) +
+  annotate("text", x=2021.9, y=280, label= "All", family = "Times")+
+  annotate("text", x=2022.9, y=107, label= "Predictive", family = "Times")+
+  annotate("text", x=2023, y=13, label= "Prescriptive", family = "Times")+
+  annotate("text", x=2022.95, y=-5, label= "Descriptive", family = "Times") +
+  labs(y = "Number of Documents") +
+  theme(text = element_text(family = "Times"))
+
+ggsave("sda.pdf", width = 6, height = 4)
+```
